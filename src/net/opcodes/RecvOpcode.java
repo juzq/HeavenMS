@@ -21,7 +21,11 @@
 */
 package net.opcodes;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum RecvOpcode {
+    UNKNOWN(-1),
     CUSTOM_PACKET(0x3713),//13 37 lol
     
     LOGIN_PASSWORD(0x01),
@@ -202,5 +206,22 @@ public enum RecvOpcode {
 
     public int getValue() {
         return code;
+    }
+    
+    private static Map<Integer, RecvOpcode> map = new HashMap<>();
+    
+    static {
+        for (RecvOpcode opcode : RecvOpcode.values()) {
+            map.put(opcode.code, opcode);
+        }
+    
+    }
+    
+    public static RecvOpcode getByCode(int code) {
+        RecvOpcode recvOpcode = map.get(code);
+        if (recvOpcode == null) {
+            recvOpcode = UNKNOWN;
+        }
+        return recvOpcode;
     }
 }

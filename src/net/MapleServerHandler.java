@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicLong;
 
+import net.opcodes.RecvOpcode;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.core.session.IoSession;
@@ -42,6 +43,7 @@ import net.server.audit.locks.factory.MonitoredReentrantLockFactory;
 import net.server.coordinator.MapleSessionCoordinator;
 
 import tools.FilePrinter;
+import tools.HexTool;
 import tools.MapleAESOFB;
 import tools.MapleLogger;
 import tools.MaplePacketCreator;
@@ -112,6 +114,7 @@ public class MapleServerHandler extends IoHandlerAdapter {
     
     @Override
     public void sessionOpened(IoSession session) {
+        System.out.println("sessionOpened:" + session.getId());
         if (!Server.getInstance().isOnline()) {
             MapleSessionCoordinator.getInstance().closeSession(session, true);
             return;
@@ -140,12 +143,15 @@ public class MapleServerHandler extends IoHandlerAdapter {
         client.setWorld(world);
         client.setChannel(channel);
         client.setSessionId(sessionId.getAndIncrement()); // Generates a reasonable session id.
-        session.write(MaplePacketCreator.getHello(ServerConstants.VERSION, ivSend, ivRecv));
+        byte[] hello = MaplePacketCreator.getHello(ServerConstants.VERSION, ivSend, ivRecv);
+        session.write(hello);
+        System.out.println("hello:" + HexTool.toString(hello));
         session.setAttribute(MapleClient.CLIENT_KEY, client);
     }
 
     @Override
     public void sessionClosed(IoSession session) throws Exception {
+        System.out.println("sessionClosed:" + session.getId());
         if (isLoginServerHandler()) {
             MapleSessionCoordinator.getInstance().closeLoginSession(session);
         } else {
@@ -177,8 +183,9 @@ public class MapleServerHandler extends IoHandlerAdapter {
         SeekableLittleEndianAccessor slea = new GenericSeekableLittleEndianAccessor(new ByteArrayByteStream(content));
         short packetId = slea.readShort();
         MapleClient client = (MapleClient) session.getAttribute(MapleClient.CLIENT_KEY);
-        
-        if(ServerConstants.USE_DEBUG_SHOW_RCVD_PACKET && !ignoredDebugRecvPackets.contains(packetId)) System.out.println("Received packet id " + packetId);
+        System.out.println("[RCV] " + (client.getPlayer() == null ? "null" : client.getPlayer().getName()) + " " +
+                Integer.toHexString(packetId) + " " + RecvOpcode.getByCode(packetId) + " data:" + HexTool.toString(content));
+        if(ServerConstants.USE_DEBUG_SHOW_RCVD_PACKET) System.out.println("Received packet id " + packetId);
         final MaplePacketHandler packetHandler = processor.getHandler(packetId);
         if (packetHandler != null && packetHandler.validateState(client)) {
             try {

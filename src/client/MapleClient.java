@@ -1371,6 +1371,7 @@ public class MapleClient {
 	}
         
         public synchronized void announce(final byte[] packet) {//MINA CORE IS A FUCKING BITCH AND I HATE IT <3
+            System.out.println("[SND] " + (getPlayer() == null ? getAccountName() : getPlayer().getName()) + " " + HexTool.toString(packet));
                 session.write(packet);
 	}
 
